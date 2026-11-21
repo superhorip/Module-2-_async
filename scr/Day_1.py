@@ -11,33 +11,37 @@ class AsyncCrawler():
     def __init__(self, max_concurrent: int = 10):
         self._max_concurrent = max_concurrent
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        self._session = aiohttp.ClientSession()
-        self._logger = logging.getLogger(__name__)
+        self._session = aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=5, connect=5, sock_read=10))
+        self._logger = logging.getLogger(f'{__name__}.{self.__class__.__name__} ')
+        
 
         
 
 
 
-    async def fetch_url(self, url: str) -> str:
-
-        self._session.timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+    async def fetch_url(self, url: str) -> str | None:
+        if not isinstance(url, str):
+            raise TypeError('Wrong type')
         try:
-            self._logger.info('Начинаем загрузку %s', url)
-            async with self._session.get(url=url) as response:
-                response.raise_for_status()
-                html = await response.text
-                return html
+            async with self._semaphore:
+                self._logger.info('Starting response to %s', url)
+                async with self._session.get(url=url) as response:
+                    self._logger.info('Making response to %s', url)
+                    response.raise_for_status()
+                    html = await response.text()
+                    self._logger.info('Response recieved from %s', url)
+                    return html
         except aiohttp.ClientResponseError as e:
             self._logger.error("HTTP ошибка %s: %s", e.status, url)
-            return 0
+            return None
         
         except asyncio.TimeoutError:
             self._logger.error("Превышено время ожидания: %s", url)
-            return 0            
+            return None            
 
         except aiohttp.ClientError as e:
             self._logger.error("Сетевая ошибка %s: %s", url, e)
-            return 0
+            return None
 
 
 
@@ -45,11 +49,27 @@ class AsyncCrawler():
 
     async def fetch_urls(self, urls: list[str]) -> dict[str, str]:
         ''' parallel loading of urls '''
-        pass
+        if not isinstance(urls, list):
+            raise TypeError('Wrong type')
+        result_dict: dict[str, str] = dict()
+        corutines_list = []
+        for url in urls:
+            corutines_list.append(self.fetch_url(url=url))
+        results = await asyncio.gather(*corutines_list)
+        result_dict = {url:result for url, result in zip(urls, results) if result_dict is not None}
+        return result_dict
+
+
+            
+
+
+
+
+
 
     async def close(self):
         '''sesion close method'''
-        pass
+        await self._session.close()
 
 
 
@@ -57,18 +77,6 @@ class AsyncCrawler():
 
 
 
-#Обрабатывать следующие исключения:
-#- ❌ aiohttp.ClientError — сетевые ошибки
-#- ⏰ asyncio.TimeoutError — таймауты
-#- 🚫 aiohttp.ClientResponseError — HTTP ошибки (404, 500 и т.д.)
-#Важен порядок обработки
-#aiohttp.ClientResponseError наследуется от aiohttp.ClientError.
-#Поэтому сначала нужно перехватывать ClientResponseError, а потом ClientError.
-#Иначе более общий обработчик перехватит HTTP-ошибку раньше специального.
-#В чём отличие от банковского проекта?
-#В банковском проекте ты создавал собственные исключения для бизнес-логики, например когда клиент пытается снять больше денег, чем есть на счёте.
-#В краулере ты работаешь с готовой библиотекой, которая уже предоставляет подходящие классы исключений.
-#Моя рекомендация: обрабатывай все три типа исключений непосредственно в fetch_url(), логируй их и определяй, что должен вернуть метод при неудачной загрузке. Отдельные классы и обработчики пока не нужны.
 
 
 
