@@ -8,10 +8,10 @@ import logging
 
 
 class AsyncCrawler():
-    def __init__(self, max_concurrent: int = 10):
+    def __init__(self, max_concurrent: int = 20):
         self._max_concurrent = max_concurrent
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        self._session = aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=5, connect=5, sock_read=10))
+        self._session = aiohttp.ClientSession(timeout = aiohttp.ClientTimeout(total=5, connect=5, sock_read=2))
         self._logger = logging.getLogger(f'{__name__}.{self.__class__.__name__} ')
         
 
