@@ -51,7 +51,9 @@ async def main():
     result_dict = await crawler.fetch_urls(urls=urls_list)
     print (f'Len of result dict {len(result_dict)}')
     await crawler.close()
+
 start = time.perf_counter()
+
 asyncio.run(main())
 end = time.perf_counter()
 

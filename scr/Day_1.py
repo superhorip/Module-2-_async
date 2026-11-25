@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import logging
+import Day_2_html_parser as parser
 
 
 
@@ -56,8 +57,20 @@ class AsyncCrawler():
         for url in urls:
             corutines_list.append(self.fetch_url(url=url))
         results = await asyncio.gather(*corutines_list)
-        result_dict = {url:result for url, result in zip(urls, results) if result_dict is not None}
+        result_dict = {url:result for url, result in zip(urls, results) if result is not None}
         return result_dict
+
+    async def fetch_and_parse(self, url: str) -> dict | None:
+        if not isinstance(url, str):
+            raise TypeError('Wrong type')
+        html = await self.fetch_url(url=url)
+        if html is None:
+            return None
+        parser_obj = parser.HTMLParser(logger=self._logger)
+        parsed_results = await parser_obj.parse_html(html=html, url=url)
+        return parsed_results
+
+
 
 
             
