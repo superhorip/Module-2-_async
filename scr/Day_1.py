@@ -49,7 +49,7 @@ class AsyncCrawler():
         
 
     async def fetch_urls(self, urls: list[str]) -> dict[str, str]:
-        ''' parallel loading of urls '''
+        ''' async loading of urls '''
         if not isinstance(urls, list):
             raise TypeError('Wrong type')
         result_dict: dict[str, str] = dict()

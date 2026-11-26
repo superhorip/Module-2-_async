@@ -58,7 +58,7 @@ async def main():
             "title": result["title"],
             "text_length": len(result["text"]),
             "links_count": len(result["links"]),
-            "links": result["links"],
+            #"links": result["links"],
             "images_count": len(result["images"])
         }
 
